@@ -677,6 +677,7 @@ class HelloTriangleApp {
     VkShaderModule vert_shader_module = __CreateShaderModule(vert_shader_code);
     VkShaderModule frag_shader_module = __CreateShaderModule(frag_shader_code);
     
+    // Create shader stages
     VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
     vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -751,6 +752,7 @@ class HelloTriangleApp {
     rasterization_state_info.depthBiasSlopeFactor = 0.f;
 
     // Multisampling for anti-aliasing
+    // We don't use multi-sampling currently.
     VkPipelineMultisampleStateCreateInfo multisample_state_info{};
     multisample_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisample_state_info.sampleShadingEnable = VK_FALSE;
@@ -769,6 +771,8 @@ class HelloTriangleApp {
     color_blend_state_info.logicOpEnable = VK_FALSE;
     
     // Pipeline layout
+    // Access to descriptor sets from a pipeline is accomplished through a
+    // pipeline layout. 
     VkPipelineLayoutCreateInfo layout_create_info{};
     layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     auto res = vkCreatePipelineLayout(device_, &layout_create_info, nullptr, &pipeline_layout_);
@@ -806,6 +810,12 @@ class HelloTriangleApp {
 
 
   void _CreateRenderPass() {
+    // Introduction In order to help optimize deferred shading on tile-based
+    // renderers, Vulkan splits the rendering operations of a render pass into
+    // subpasses. All subpasses in a render pass share the same resolution and
+    // tile arrangement, and as a result, they can access the results of
+    // previous subpass.
+
     VkAttachmentDescription color_attachment{};
     color_attachment.format = swapchain_image_format_;
     color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -829,6 +839,9 @@ class HelloTriangleApp {
     color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    // The initialLayout specifies which layout the image will have before the
+    // render pass begins. The finalLayout specifies the layout to
+    // automatically transition to when the render pass finishes.
     color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
@@ -842,19 +855,30 @@ class HelloTriangleApp {
     subpass.pColorAttachments = &color_attachment_ref;
     
     VkSubpassDependency dependency{};
+    // If we wanted to depend on a subpass that's part of a previous render
+    // pass, we could just pass in VK_SUBPASS_EXTERNAL here instead.
+    // In this case, that would mean "wait for all of the subpasses within all
+    // of the render passes before this one".
+    // Reference: https://www.reddit.com/r/vulkan/comments/s80reu/subpass_dependencies_what_are_those_and_why_do_i/
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
+    // srcStageMask is a bitmask of all of the Vulkan "stages" (basically,
+    // steps of the rendering process) we're asking Vulkan to finish executing
+    // within srcSubpass before we move on to dstSubpass.
     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.srcAccessMask = 0;
+    // dstStageMask is a bitmask of all of the Vulkan stages in dstSubpass
+    // that we're not allowed to execute until after the stages in srcStageMask
+    // have completed within srcSubpass.
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
     VkRenderPassCreateInfo render_pass_info{};
     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    render_pass_info.attachmentCount = 1;
     render_pass_info.pAttachments = &color_attachment;
-    render_pass_info.subpassCount = 1;
+    render_pass_info.attachmentCount = 1;
     render_pass_info.pSubpasses = &subpass;
+    render_pass_info.subpassCount = 1;
     render_pass_info.pDependencies = &dependency;
     render_pass_info.dependencyCount = 1;
 
