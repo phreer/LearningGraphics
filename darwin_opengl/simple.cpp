@@ -1,10 +1,20 @@
+#include <cstdlib>
+#include <ctime>
 #include <stdio.h>
+#include <math.h>
+#include <vector>
 
-#include <GL/glew.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#include <GL/glew.h>
 
 #include "utils.h"
 #include "application.h"
+
+
+void error_callback(int error, const char* description) {
+   puts(description);
+}
 
 char *LoadVertexShader() {
     char filename[] = "../shader.vert";
@@ -36,6 +46,7 @@ GLuint CompileShaders() {
   GLuint vert_shader;
   GLuint frag_shader;
   GLuint program;
+  GLint is_compiled = 0;
 
   char *vert_shader_source = LoadVertexShader();
   if (vert_shader_source == NULL) {
@@ -46,7 +57,25 @@ GLuint CompileShaders() {
   printf(vert_shader_source);
   glShaderSource(vert_shader, 1, &vert_shader_source, NULL);
   glCompileShader(vert_shader);
-  printf("vertex shader compiled\n");
+  glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &is_compiled);
+  if(is_compiled == GL_FALSE) {
+    GLint maxLength = 0;
+    glGetShaderiv(vert_shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+    // The maxLength includes the NULL character
+    std::vector<GLchar> errorLog(maxLength);
+    glGetShaderInfoLog(vert_shader, maxLength, &maxLength, &errorLog[0]);
+
+    // Provide the infolog in whatever manor you deem best.
+    printf("%s: failed to compile vertex shader\n", __func__);
+    puts(errorLog.data());
+    // Exit with failure.
+    glDeleteShader(vert_shader); // Don't leak the shader.
+    exit(EXIT_FAILURE);
+  } else {
+    printf("vertex shader compiled\n");
+  }
+
 
   char *frag_shader_source = LoadFragmentShader();
   if (frag_shader_source == NULL) {
@@ -57,16 +86,34 @@ GLuint CompileShaders() {
   printf(frag_shader_source);
   glShaderSource(frag_shader, 1, &frag_shader_source, NULL);
   glCompileShader(frag_shader);
-  printf("fragment shader compiled\n");
+  glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &is_compiled);
+
+  if(is_compiled == GL_FALSE) {
+    GLint maxLength = 0;
+    glGetShaderiv(frag_shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+    // The maxLength includes the NULL character
+    std::vector<GLchar> errorLog(maxLength);
+    glGetShaderInfoLog(frag_shader, maxLength, &maxLength, &errorLog[0]);
+
+    // Provide the infolog in whatever manor you deem best.
+    printf("%s: failed to compile vertex shader\n", __func__);
+    puts(errorLog.data());
+    // Exit with failure.
+    glDeleteShader(frag_shader); // Don't leak the shader.
+    exit(EXIT_FAILURE);
+  } else {
+    printf("fragment shader compiled\n");
+  }
 
   program = glCreateProgram();
-  printf("rendering program created");
+  printf("program created\n");
   glAttachShader(program, vert_shader);
-  printf("rendering program created");
+  printf("vertex shader attached\n");
   glAttachShader(program, frag_shader);
-  printf("rendering program created");
+  printf("program created\n");
   glLinkProgram(program);
-  printf("rendering program created");
+  printf("fragment shader attached\n");
 
   glDeleteShader(vert_shader);
   glDeleteShader(frag_shader);
@@ -84,8 +131,8 @@ class SimpleApp: public Application {
 
  private:
   void StartUp_() override {
-
-    if (!glfwInit()) {
+    glfwSetErrorCallback(error_callback);
+    if (glfwInit() != GLFW_TRUE) {
       fprintf(stderr, "failed to initialize GLFW\n");
       exit(EXIT_FAILURE);
     }
@@ -124,10 +171,11 @@ class SimpleApp: public Application {
     glViewport(0, 0, width, height);
 
     glCreateVertexArrays(1, &vertex_array_object_);
+    glBindVertexArray(vertex_array_object_);
   }
 
   void ShutDown_() override {
-    // glDeleteVertexArrays(1, &vertex_array_object_);
+    glDeleteVertexArrays(1, &vertex_array_object_);
     glDeleteProgram(rendering_program_);
     glfwTerminate();
   }
@@ -137,7 +185,8 @@ class SimpleApp: public Application {
     while (!glfwWindowShouldClose(window_))
     {
       /* Render here */
-      Draw__();
+      auto current_time = time(nullptr);
+      Draw__(current_time * 1000);
       /* Swap front and back buffers */
       glfwSwapBuffers(window_);
       /* Poll for and process events */
@@ -145,7 +194,12 @@ class SimpleApp: public Application {
     }
   }
 
-  void Draw__() {
+  void Draw__(double current_time) {
+    const GLfloat color[] = {
+        (float)sin(current_time) * 0.5f + 0.5f,
+        (float)cos(current_time) * 0.5f + 0.5f,
+        0.0f, 1.0f };
+    glClearBufferfv(GL_COLOR, 0, color);
   }
 
   GLFWwindow *window_;
