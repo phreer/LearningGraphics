@@ -1,0 +1,38 @@
+project(darwin_opengl)
+cmake_minimum_required(VERSION 3.4)
+set(CMAKE_EXPORT_COMPILE_COMMANDS on)
+enable_language(CXX)
+set(CMAKE_CXX_STANDARD 11)
+
+macro(print_all_variables)
+    message(STATUS "print_all_variables------------------------------------------{")
+    get_cmake_property(_variableNames VARIABLES)
+    foreach (_variableName ${_variableNames})
+        message(STATUS "${_variableName}=${${_variableName}}")
+    endforeach()
+    message(STATUS "print_all_variables------------------------------------------}")
+endmacro()
+
+if (APPLE)
+        include_directories(/usr/local/include/)
+
+        find_package(OpenGL)
+        link_libraries(${OPENGL_LIBRARIES})
+        find_package(glew CONFIG REQUIRED)
+        include_directories(${glew_INCLUDE_DIRS})
+        link_libraries(${glew_LIBRARIES})
+        link_directories(${glew_LIBRARY_DIRS})
+endif()
+
+if (UNIX)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(glew REQUIRED glew)
+        link_libraries(${glew_LIBRARIES})
+endif()
+
+find_package(glfw3 CONFIG REQUIRED)
+link_libraries(glfw)
+
+print_all_variables()
+add_executable(simple simple.cpp)
+target_link_libraries(simple)
