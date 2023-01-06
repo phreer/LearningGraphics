@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
   char *window_name = "Basic";
   char *icon_name = "Ba";
 
-  int screen_num, done;
+  int screen_num, done = 0;
   unsigned long mask;
 
   /* Get connection */
@@ -57,6 +57,7 @@ int main(int argc, char *argv[]) {
   XSetWMIconName(my_display, my_window, &icon_name_property);
 
 
+  printf("Start showing window\n");
   XMapWindow(my_display, my_window);
   
   while (!done) {
