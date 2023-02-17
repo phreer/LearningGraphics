@@ -48,3 +48,16 @@ static inline int LoadFile(const char *filename, struct FileContent *result) {
   *result = {content, file_size, file_size + 1};
   return 0;
 }
+
+
+static inline int StoreFile(const char *filename, const char *data, size_t size) {
+  FILE *f = fopen(filename, "w");
+  if (!f) {
+    perror("failed to open file");
+    return -1;
+  }
+  
+  fwrite(data, 1, size, f);
+  fclose(f);
+  return 0;
+}

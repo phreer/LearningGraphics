@@ -20,5 +20,9 @@ if (UNIX)
         pkg_check_modules(glew REQUIRED glew)
         link_libraries(${glew_LIBRARIES})
 endif()
+
 add_executable(simple simple.cpp)
 target_link_libraries(simple)
+
+add_executable(simple-fb simple-fb.cpp)
+target_link_libraries(simple-fb)

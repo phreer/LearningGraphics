@@ -54,6 +54,7 @@ GLuint CompileShaders() {
     exit(EXIT_FAILURE);
   }
   vert_shader = glCreateShader(GL_VERTEX_SHADER);
+  printf("vertex shader source: \n");
   printf(vert_shader_source);
   glShaderSource(vert_shader, 1, &vert_shader_source, NULL);
   glCompileShader(vert_shader);
@@ -83,6 +84,7 @@ GLuint CompileShaders() {
     exit(EXIT_FAILURE);
   }
   frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+  printf("fragment shader source: \n");
   printf(frag_shader_source);
   glShaderSource(frag_shader, 1, &frag_shader_source, NULL);
   glCompileShader(frag_shader);

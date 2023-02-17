@@ -1,2 +1,4 @@
 **/.DS_Store
-*.o
+**/*.o
+**/builddir
+**/compile_commands.json
