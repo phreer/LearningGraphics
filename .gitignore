@@ -2,3 +2,4 @@
 **/*.o
 **/builddir
 **/compile_commands.json
+**/.cache/

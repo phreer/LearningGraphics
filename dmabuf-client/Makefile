@@ -1,2 +1,4 @@
-test_dmabuf: linux_dmabuf_client.o test_dmabuf.c
-	gcc -o $@ -I/usr/include/drm linux_dmabuf_client.o test_dmabuf.c -lwayland-client -ldrm
+OBJS=linux_dmabuf_client.o xdg_shell_client.o
+INC=-I/usr/include/drm -I/usr/include/libdrm
+test_dmabuf: ${OBJS} test_dmabuf.c
+	gcc -o $@ ${INC} ${OBJS}  test_dmabuf.c -lwayland-client -ldrm
