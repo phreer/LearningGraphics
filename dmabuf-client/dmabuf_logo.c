@@ -134,7 +134,7 @@ void get_dmabuf_buffer(int32_t width, int32_t height, unsigned char *rgb_data,
 void xdg_surface_configure_handler(void *data, struct xdg_surface *xdg_surface,
                                    uint32_t serial) {
   struct window *main_window = data;
-  printf("%s(): handle configure event of xdg_surface");
+  printf("%s(): handle configure event of xdg_surface", __func__);
   xdg_surface_ack_configure(xdg_surface, serial);
   wl_surface_attach(main_window->surface, main_window->buffer, 0, 0);
   wl_surface_commit(main_window->surface);
