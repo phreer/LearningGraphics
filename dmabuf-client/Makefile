@@ -7,4 +7,7 @@ test_dmabuf: ${OBJS} test_dmabuf.c
 dmabuf_logo: ${OBJS} dmabuf_logo.c
 	gcc -o $@ ${INC} ${OBJS}  $@.c ${LIBS}
 
-all: test_dmabuf dmabuf_logo
+dmabuf_logo_immed: ${OBJS} dmabuf_logo_immed.c
+	gcc -o $@ ${INC} ${OBJS}  $@.c ${LIBS}
+
+all: test_dmabuf dmabuf_logo dmabuf_logo_immed

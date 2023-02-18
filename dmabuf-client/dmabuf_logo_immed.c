@@ -1,20 +1,20 @@
 #include <assert.h>
-#include <drm.h>
-#include <drm_fourcc.h>
-#include <drm_mode.h>
-#include <i915_drm.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/file.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <virtgpu_drm.h>
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
+#include <drm.h>
+#include <virtgpu_drm.h>
+#include <i915_drm.h>
+#include <drm_mode.h>
+#include <drm_fourcc.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
 #include <xf86drm.h>
+#include <sys/file.h>
 
 #include "linux_dmabuf_client.h"
 #include "xdg_shell_client.h"
@@ -42,10 +42,10 @@ struct window {
   unsigned char *alpha_data;
 };
 
-void load_rgba_image(const char *filename, int32_t *width, int32_t *height,
+void load_rgba_image(const char* filename, int32_t *width, int32_t *height,
                      unsigned char **rgb_data, unsigned char **alpha_data) {
-  assert(filename != NULL && width != NULL && height != NULL &&
-         rgb_data != NULL && alpha_data != NULL);
+  assert(filename != NULL && width != NULL && height != NULL
+      && rgb_data != NULL && alpha_data != NULL);
   int32_t num_channels = 0;
   *rgb_data = stbi_load(filename, width, height, &num_channels, 4);
   assert(*rgb_data);
@@ -85,8 +85,7 @@ int create_dmabuf_plane(int32_t width, int32_t height, uint32_t bpp,
   mreq.handle = creq.handle;
   ret = drmIoctl(gpu_fd, DRM_IOCTL_MODE_MAP_DUMB, &mreq);
   assert(ret == 0);
-  map = mmap(0, creq.size, PROT_READ | PROT_WRITE, MAP_SHARED, gpu_fd,
-             mreq.offset);
+  map = mmap(0, creq.size, PROT_READ | PROT_WRITE, MAP_SHARED, gpu_fd, mreq.offset);
   assert(map);
   // memset(map, -1, creq.size);
   for (int i = 0; i < height; ++i) {
@@ -98,20 +97,9 @@ int create_dmabuf_plane(int32_t width, int32_t height, uint32_t bpp,
   return buffer_fd;
 }
 
-void buffer_params_created_handler(
-    void *data, struct zwp_linux_buffer_params_v1 *zwp_linux_buffer_params_v1,
-    struct wl_buffer *buffer) {
-  struct window *window = data;
-  window->buffer = buffer;
-}
-
-static const struct zwp_linux_buffer_params_v1_listener buffer_params_handler =
-    {
-        .created = buffer_params_created_handler,
-};
-
-void get_dmabuf_buffer(int32_t width, int32_t height, unsigned char *rgb_data,
-                       unsigned char *alpha_data, struct window *window) {
+struct wl_buffer* get_dmabuf_buffer(int32_t width, int32_t height,
+                                    unsigned char *rgb_data,
+                                    unsigned char *alpha_data) {
   struct zwp_linux_buffer_params_v1 *buffer_params =
       zwp_linux_dmabuf_v1_create_params(ctx.linux_dmabuf);
   uint32_t buffer_stride = 0;
@@ -121,17 +109,18 @@ void get_dmabuf_buffer(int32_t width, int32_t height, unsigned char *rgb_data,
 
   buffer_fd = create_dmabuf_plane(width, height, 32, rgb_data, &buffer_stride);
   alpha_fd = create_dmabuf_plane(width, height, 8, alpha_data, &alpha_stride);
-  zwp_linux_buffer_params_v1_add(buffer_params, buffer_fd, 0, 0, buffer_stride,
-                                 0, 0);
-  // zwp_linux_buffer_params_v1_add(buffer_params, alpha_fd, 1, 0,
+  zwp_linux_buffer_params_v1_add(buffer_params, buffer_fd, 0, 0, 
+                         buffer_stride, 0, 0);
+  // zwp_linux_buffer_params_v1_add(buffer_params, alpha_fd, 1, 0, 
   //                        alpha_stride, 0, 0);
-  zwp_linux_buffer_params_v1_create(buffer_params, width, height,
-                                    DRM_FORMAT_ABGR8888, 0);
-  zwp_linux_buffer_params_v1_add_listener(buffer_params, &buffer_params_handler,
-                                          window);
+  struct wl_buffer *buffer = zwp_linux_buffer_params_v1_create_immed(
+      buffer_params, width, height, DRM_FORMAT_ABGR8888, 0);
+  zwp_linux_buffer_params_v1_destroy(buffer_params);
+  return buffer;
 }
 
-void xdg_surface_configure_handler(void *data, struct xdg_surface *xdg_surface,
+void xdg_surface_configure_handler(void *data,
+                                   struct xdg_surface *xdg_surface,
                                    uint32_t serial) {
   struct window *main_window = data;
   xdg_surface_ack_configure(xdg_surface, serial);
@@ -140,40 +129,43 @@ void xdg_surface_configure_handler(void *data, struct xdg_surface *xdg_surface,
 }
 
 static const struct xdg_surface_listener xdg_surface_handler = {
-    .configure = xdg_surface_configure_handler,
+  .configure = xdg_surface_configure_handler,
 };
 
-void xdg_vm_base_ping_handler(void *data, struct xdg_wm_base *xdg_wm_base,
+void xdg_vm_base_ping_handler(void *data,
+                              struct xdg_wm_base *xdg_wm_base,
                               uint32_t serial) {
   xdg_wm_base_pong(xdg_wm_base, serial);
 }
 
 static const struct xdg_wm_base_listener xdg_wm_base_handler = {
-    .ping = xdg_vm_base_ping_handler,
+  .ping = xdg_vm_base_ping_handler,
 };
 
-static void registry_global_handler(void *data, struct wl_registry *registry,
-                                    uint32_t name, const char *interface,
-                                    uint32_t version) {
-  printf("%s(): name = %u, interface = %s, version = %u\n", __func__, name,
-         interface, version);
-  struct context *ctx = (struct context *)data;
+static void registry_global_handler(void *data,
+		                                struct wl_registry *registry,
+		                                uint32_t name,
+		                                const char *interface,
+		                                uint32_t version) {
+  printf("%s(): name = %u, interface = %s, version = %u\n",
+         __func__, name, interface, version);
+  struct context *ctx = (struct context *) data;
   if (strcmp(interface, "wl_compositor") == 0) {
-    ctx->compositor =
-        wl_registry_bind(registry, name, &wl_compositor_interface, version);
+    ctx->compositor = wl_registry_bind(
+        registry, name, &wl_compositor_interface, version);
   } else if (strcmp(interface, "zwp_linux_dmabuf_v1") == 0) {
-    assert(version >= 3);
-    ctx->linux_dmabuf =
-        wl_registry_bind(registry, name, &zwp_linux_dmabuf_v1_interface, 3);
+    assert (version >= 3);
+    ctx->linux_dmabuf = wl_registry_bind(
+        registry, name, &zwp_linux_dmabuf_v1_interface, 3);
   } else if (strcmp(interface, "xdg_wm_base") == 0) {
-    ctx->wm_base =
-        wl_registry_bind(registry, name, &xdg_wm_base_interface, version);
+    ctx->wm_base = wl_registry_bind(
+        registry, name, &xdg_wm_base_interface, version);
     xdg_wm_base_add_listener(ctx->wm_base, &xdg_wm_base_handler, NULL);
   }
 }
 
 static const struct wl_registry_listener registry_listener = {
-    .global = registry_global_handler,
+  .global = registry_global_handler,
 };
 
 static void usage(FILE *f, const char *prog) {
@@ -200,21 +192,13 @@ int main(int argc, char *argv[]) {
   ctx.gpu_fd = drmOpenWithType(argv[1], NULL, DRM_NODE_PRIMARY);
   assert(ctx.gpu_fd >= 0);
 
-  struct window main_window = {0};
+  struct window main_window;
 
-  load_rgba_image("./LINUX-LOGO-768x848.png", &main_window.width,
-                  &main_window.height, &main_window.rgbx_data,
-                  &main_window.alpha_data);
-  get_dmabuf_buffer(main_window.width, main_window.height,
-                    main_window.rgbx_data, main_window.rgbx_data, &main_window);
-  wl_display_roundtrip(ctx.display);
-  while (1) {
-    if (main_window.buffer)
-      break;
-  }
+  load_rgba_image("./LINUX-LOGO-768x848.png", &main_window.width, &main_window.height,
+                  &main_window.rgbx_data, &main_window.alpha_data);
+  main_window.buffer = get_dmabuf_buffer(main_window.width, main_window.height, main_window.rgbx_data, main_window.rgbx_data);
   main_window.surface = wl_compositor_create_surface(ctx.compositor);
-  main_window.xdg_surface =
-      xdg_wm_base_get_xdg_surface(ctx.wm_base, main_window.surface);
+  main_window.xdg_surface = xdg_wm_base_get_xdg_surface(ctx.wm_base, main_window.surface);
   xdg_surface_add_listener(main_window.xdg_surface, &xdg_surface_handler,
                            &main_window);
   // xdg_surface_set_window_geometry(xdg_surface, 0, 0, WIDTH, HEIGHT);
