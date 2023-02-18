@@ -134,6 +134,7 @@ void get_dmabuf_buffer(int32_t width, int32_t height, unsigned char *rgb_data,
 void xdg_surface_configure_handler(void *data, struct xdg_surface *xdg_surface,
                                    uint32_t serial) {
   struct window *main_window = data;
+  printf("%s(): handle configure event of xdg_surface");
   xdg_surface_ack_configure(xdg_surface, serial);
   wl_surface_attach(main_window->surface, main_window->buffer, 0, 0);
   wl_surface_commit(main_window->surface);
@@ -220,7 +221,6 @@ int main(int argc, char *argv[]) {
   // xdg_surface_set_window_geometry(xdg_surface, 0, 0, WIDTH, HEIGHT);
   main_window.toplevel = xdg_surface_get_toplevel(main_window.xdg_surface);
   xdg_toplevel_set_title(main_window.toplevel, argv[0]);
-  wl_surface_attach(main_window.surface, main_window.buffer, 0, 0);
   wl_surface_commit(main_window.surface);
   while (1) {
     wl_display_dispatch(ctx.display);
