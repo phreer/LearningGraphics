@@ -24,5 +24,5 @@ endif()
 add_executable(simple simple.cpp)
 target_link_libraries(simple)
 
-add_executable(simple-fb simple-fb.cpp)
+add_executable(simple-fb simple.cpp)
 target_link_libraries(simple-fb)
