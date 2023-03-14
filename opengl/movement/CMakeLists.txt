@@ -1,8 +1,10 @@
-project(darwin_opengl)
+project(movement)
 cmake_minimum_required(VERSION 3.4)
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 enable_language(CXX)
 set(CMAKE_CXX_STANDARD 11)
+
+include_directories(${PROJECT_SOURCE_DIR}/include)
 
 macro(print_all_variables)
     message(STATUS "print_all_variables------------------------------------------{")
@@ -34,5 +36,5 @@ find_package(glfw3 CONFIG REQUIRED)
 link_libraries(glfw)
 
 print_all_variables()
-add_executable(simple simple.cpp)
+add_executable(simple simple.cpp ${PROJECT_SOURCE_DIR}/src/glad.c)
 target_link_libraries(simple)

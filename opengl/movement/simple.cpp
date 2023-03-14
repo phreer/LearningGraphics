@@ -10,7 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/ext.hpp>
 
-#include <GL/glew.h>
+#include "glad/glad.h"
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
@@ -241,18 +241,23 @@ private:
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window_);
-    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetFramebufferSizeCallback(window_, WindowResizeCallback);
+    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window_, MouseCallback);
     glfwSetScrollCallback(window_, ScrollCallback);
 
-    GLenum err = glewInit();
-    if (err != GLEW_OK) {
-      fprintf(stderr, "failed to init glew");
-      exit(EXIT_FAILURE); // or handle the error in a nicer way
+    // GLenum err = glewInit();
+    // if (err != GLEW_OK) {
+    //   fprintf(stderr, "failed to init glew");
+    //   exit(EXIT_FAILURE); // or handle the error in a nicer way
+    // }
+    // if (!GLEW_VERSION_2_1) // check that the machine supports the 2.1 API.
+    //   exit(EXIT_FAILURE);  // or handle the error in a nicer way
+    int ret = gladLoadGL();
+    if (ret == 0) {
+      fprintf(stderr, "failed to load OpenGL functions\n");
+      exit(EXIT_FAILURE);
     }
-    if (!GLEW_VERSION_2_1) // check that the machine supports the 2.1 API.
-      exit(EXIT_FAILURE);  // or handle the error in a nicer way
 
     // get version info
     const GLubyte *renderer = glGetString(GL_RENDERER); // get renderer string
@@ -262,8 +267,7 @@ private:
 
     // tell GL to only draw onto a pixel if the shape is closer to the viewer
     glEnable(GL_DEPTH_TEST); // enable depth-testing
-    glDepthFunc(
-        GL_LESS); // depth-testing interprets a smaller value as "closer"
+    glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
 
     rendering_program_ = CompileShaders();
 
@@ -351,9 +355,13 @@ private:
   }
 
   void Draw__(double current_time) {
-    printf("Start drawing new frame, current_time = %lf\n", current_time);
+    static double last_time = -1.0;
+
+    if (last_time == -1.0) last_time = current_time;
+    // printf("Start drawing new frame, current_time = %lf\n", current_time);
     // float angle = current_time - (long) (current_time / 360) * 360;
     float angle = 0.0;
+    float camera_pos_rotate_angle = (current_time - last_time) * 0.36;
     unsigned int view_loc = glGetUniformLocation(rendering_program_, "u_view");
 
     glUniform3f(glGetUniformLocation(rendering_program_, "u_color"), 0.0, 0.0, sin(glm::radians(angle)));
@@ -364,6 +372,12 @@ private:
     glUniformMatrix4fv(glGetUniformLocation(rendering_program_, "u_projection"),
                        1, GL_FALSE, glm::value_ptr(projection));
 
+    glm::mat4 camera_pos_rotate = glm::rotate(glm::mat4(1.0f), glm::radians(camera_pos_rotate_angle), glm::vec3(0.0, 1.0, 0.0));
+    glm::vec3 pos_tmp = camera_pos_;
+    pos_tmp.x = (camera_pos_rotate * glm::vec4(camera_pos_, 1)).x;
+    pos_tmp.y = (camera_pos_rotate * glm::vec4(camera_pos_, 1)).y;
+    pos_tmp.z = (camera_pos_rotate * glm::vec4(camera_pos_, 1)).z;
+    camera_pos_ = pos_tmp;
 
 		glm::vec3 direction;
 		direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
@@ -373,14 +387,13 @@ private:
     camera_target_ = camera_pos_ + camera_front_;
     // Setup view matrix
     glm::mat4 view = glm::mat4(1.0f);
-    float view_angle = angle / 10;
     view = glm::lookAt(camera_pos_, camera_target_, camera_up_);
     glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(view));
 
     // Start drawing triangles
     glUseProgram(rendering_program_);
     glBindVertexArray(vertex_array_object_);
-    const GLfloat color[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    const GLfloat color[] = {0.5f, 0.5f, 0.5f, 1.0f};
     glClearBufferfv(GL_COLOR, 0, color);
     glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -393,11 +406,12 @@ private:
       glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(trans));
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+    last_time = current_time;
   }
 
 	void ProcessInput__(GLFWwindow *window) {
 		const float camera_speed = 0.05f; // adjust accordingly
-		glm::vec3 movement;
+		glm::vec3 movement = glm::vec3(0.0f);
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			movement = camera_speed * camera_front_;
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

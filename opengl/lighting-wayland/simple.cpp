@@ -411,7 +411,7 @@ private:
 
 	void ProcessInput__(GLFWwindow *window) {
 		const float camera_speed = 0.05f; // adjust accordingly
-		glm::vec3 movement;
+		glm::vec3 movement = glm::vec3(0.0f);
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			movement = camera_speed * camera_front_;
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
