@@ -6,3 +6,6 @@ basic: basic.c
 
 moving: moving.c
 	gcc -o $@ $< $(LDFLAGS)
+
+menu: menu.c
+	gcc -o $@ $< $(LDFLAGS)
