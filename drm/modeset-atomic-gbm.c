@@ -505,11 +505,12 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	uint32_t map_stride;
 	unsigned int j, k, off;
 
+	printf("allocate the buffer with gbm\n");
 	gbm_bo = gbm_bo_create(gbm_device,
-				    buf->width,
-				    buf->height,
-				    DRM_FORMAT_XRGB8888,
-				    GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT);
+			       buf->width,
+			       buf->height,
+			       DRM_FORMAT_XRGB8888,
+			       GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT);
 	assert(gbm_bo);
 	buf->gbm_bo = gbm_bo;
 	num_planes = gbm_bo_get_plane_count(gbm_bo);
@@ -844,17 +845,24 @@ static void modeset_paint_framebuffer(struct modeset_output *out)
 	struct modeset_buf *buf;
 	unsigned int j, k, off;
 
+	buf = &out->bufs[out->front_buf ^ 1];
+	buf->map = gbm_bo_map(buf->gbm_bo, 0, 0, buf->width, buf->height, 0, &buf->stride, &buf->map_data);
 	/* draw on back framebuffer */
 	out->r = next_color(&out->r_up, out->r, 5);
 	out->g = next_color(&out->g_up, out->g, 5);
 	out->b = next_color(&out->b_up, out->b, 5);
-	buf = &out->bufs[out->front_buf ^ 1];
-	buf->map = gbm_bo_map(buf->gbm_bo, 0, 0, buf->width, buf->height, 0, &buf->stride, &buf->map_data);
-	for (j = 0; j < buf->height; ++j) {
+	for (j = 0; j < buf->height / 2; ++j) {
 		for (k = 0; k < buf->width; ++k) {
 			off = buf->stride * j + k * 4;
 			*(uint32_t*)&buf->map[off] =
 				     (out->r << 16) | (out->g << 8) | out->b;
+		}
+	}
+	for (j = buf->height / 2; j < buf->height; ++j) {
+		for (k = 0; k < buf->width; ++k) {
+			off = buf->stride * j + k * 4;
+			*(uint32_t*)&buf->map[off] =
+				     ((255 - out->r) << 16) | ((255 - out->g) << 8) | (255 - out->b);
 		}
 	}
 	gbm_bo_unmap(buf->gbm_bo, buf->map_data);
