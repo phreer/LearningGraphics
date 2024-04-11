@@ -22,9 +22,8 @@
 #include <drm_fourcc.h>
 #include <gbm.h>
 
-#define WIDTH 	1920
-#define HEIGHT 	1080
-
+#define WIDTH 	3840
+#define HEIGHT 	2160
 
 struct modeset_buf {
 	uint32_t width;
@@ -115,12 +114,13 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	handles[0] = buf->handle;
 	pitches[0] = buf->stride;
 
+	printf("width = %u, height = %u, stride = %u\n", buf->width, buf->height, buf->stride);
 	buf->map = gbm_bo_map(gbm_bo, 0, 0, buf->width, buf->height, 0, &buf->stride, &buf->map_data);
 	/* clear the framebuffer to 0 */
 	for (j = 0; j < buf->height; ++j) {
 		for (k = 0; k < buf->width; ++k) {
 			off = buf->stride * j + k * 4;
-			*(uint32_t*)&buf->map[off] = 0;
+			*(uint32_t*)&buf->map[off] = -1;
 		}
 	}
 	gbm_bo_unmap(gbm_bo, buf->map_data);
@@ -319,6 +319,9 @@ int main(int argc, char **argv)
 	if (ret)
 		goto out_close;
 
+	while (1) {
+		sleep(1);
+	}
 	/* cleanup everything */
 	modeset_cleanup(fd);
 
