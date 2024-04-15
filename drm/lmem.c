@@ -99,8 +99,8 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	gbm_bo = gbm_bo_create(gbm_device,
 			       buf->width,
 			       buf->height,
-			       DRM_FORMAT_XRGB8888,
-			       GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT);
+			       GBM_BO_FORMAT_XRGB8888,
+			       GBM_BO_USE_SCANOUT | GBM_BO_USE_LINEAR);
 	assert(gbm_bo);
 	buf->gbm_bo = gbm_bo;
 	num_planes = gbm_bo_get_plane_count(gbm_bo);
@@ -115,12 +115,13 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	pitches[0] = buf->stride;
 
 	printf("width = %u, height = %u, stride = %u\n", buf->width, buf->height, buf->stride);
-	buf->map = gbm_bo_map(gbm_bo, 0, 0, buf->width, buf->height, 0, &buf->stride, &buf->map_data);
+	buf->map = gbm_bo_map(gbm_bo, GBM_BO_FORMAT_XRGB8888, GBM_BO_TRANSFER_WRITE,
+				buf->width, buf->height, 0, &buf->stride, &buf->map_data);
 	/* clear the framebuffer to 0 */
 	for (j = 0; j < buf->height; ++j) {
 		for (k = 0; k < buf->width; ++k) {
 			off = buf->stride * j + k * 4;
-			*(uint32_t*)&buf->map[off] = -1;
+			*(uint32_t*)&buf->map[off] = (uint32_t) (255 << 8);
 		}
 	}
 	gbm_bo_unmap(gbm_bo, buf->map_data);
@@ -216,10 +217,8 @@ out_error:
 
 static int modeset_prepare(int fd)
 {
-	struct modeset_output *out;
-
 	/* create an output structure and free connector data */
-	out = modeset_output_create(fd);
+	output = modeset_output_create(fd);
 
 	return 0;
 }
@@ -253,7 +252,7 @@ static void modeset_paint_framebuffer(struct modeset_output *out)
 	unsigned int j, k, off;
 
 	buf = &out->bufs[out->front_buf ^ 1];
-	buf->map = gbm_bo_map(buf->gbm_bo, 0, 0, buf->width, buf->height, 0, &buf->stride, &buf->map_data);
+	buf->map = gbm_bo_map(buf->gbm_bo, GBM_BO_FORMAT_XRGB8888, GBM_BO_TRANSFER_WRITE, buf->width, buf->height, 0, &buf->stride, &buf->map_data);
 	/* draw on back framebuffer */
 	out->r = next_color(&out->r_up, out->r, 5);
 	out->g = next_color(&out->g_up, out->g, 5);
@@ -276,7 +275,6 @@ static void modeset_paint_framebuffer(struct modeset_output *out)
 	buf->map = NULL;
 	buf->map_data = NULL;
 }
-
 
 
 /*
@@ -321,6 +319,7 @@ int main(int argc, char **argv)
 
 	while (1) {
 		sleep(1);
+		// modeset_paint_framebuffer(output);
 	}
 	/* cleanup everything */
 	modeset_cleanup(fd);
