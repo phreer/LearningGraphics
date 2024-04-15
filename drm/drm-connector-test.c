@@ -16,12 +16,18 @@ void show_connector_info(uint32_t id) {
 	}
 	printf("connector %u:\n", id);
 	printf("\tconnection = %d\n", c->connection);
+	printf("\t#modes = %d, #encoders = %d, #props = %d\n", c->count_modes, c->count_encoders, c->count_props);
 }
 
 int main(int argc, char *argv[]) {
 	int ret = 0;
 	drmModeResPtr res;
-	drm_fd = drmOpen("amdgpu", NULL);
+
+	if (argc != 1) {
+		fprintf(stderr, "usage: %s <gpu-name>", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+	drm_fd = drmOpen(argv[0], NULL);
 	if (drm_fd < 0) {
 		perror("failed to open drm device");
 		return EXIT_FAILURE;
