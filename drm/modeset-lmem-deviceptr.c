@@ -79,7 +79,7 @@ struct drm_i915_gem_deviceptr {
 	 * Object handles are nonzero.
 	 */
 	__u32 handle;
-	struct drm_i915_gem_deviceptr_item items[1];
+	struct drm_i915_gem_deviceptr_item *items;
 };
 
 #define DRM_I915_GEM_DEVICEPTR		0x3d
@@ -525,19 +525,27 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	uint32_t map_stride;
 	unsigned int j, k, off;
 	struct drm_i915_gem_deviceptr *deviceptr;
-	static int call_count = 0;
+	struct drm_i915_gem_deviceptr_item *items;
+	static int call_count = 0, count = 1;
 
 	deviceptr = malloc(sizeof(*deviceptr));
 	assert(deviceptr != NULL);
+	items = malloc(count * sizeof(*items));
+	assert(items != NULL);
 	memset(deviceptr, 0, sizeof(*deviceptr));
+
+	items[0].offset = 0x2000000;
+	if (call_count)
+		items[0].offset = 0x4000000;
+	items[0].size = 33554432;
 	deviceptr->vid = 1;
 	deviceptr->flags = 0;
-	deviceptr->count = 1;
-	deviceptr->items[0].offset = 0x2000000;
-	if (call_count)
-		deviceptr->items[0].offset = 0x4000000;
+	deviceptr->count = count;
+	deviceptr->items = items;
+	fprintf(stderr, "%s: items = %p\n", __func__, items);
+
 	call_count++;
-	deviceptr->items[0].size = 33554432;
+
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_DEVICEPTR, deviceptr);
 	if (ret) {
 		fprintf(stderr, "failed to create bo, error: %s\n", strerror(errno));
