@@ -378,15 +378,14 @@ class HelloTriangleApp {
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     vkCmdDraw(command_buffer, 3, 1, 0, 0);
-    
-   vkCmdEndRenderPass(command_buffer);
 
-   res = vkEndCommandBuffer(command_buffer);
-   if (res != VK_SUCCESS) {
-    std::cerr << "Error: failed to end command buffer, code: " << res << std::endl;
-    exit(EXIT_FAILURE);
-   }
-   
+    vkCmdEndRenderPass(command_buffer);
+
+    res = vkEndCommandBuffer(command_buffer);
+    if (res != VK_SUCCESS) {
+      std::cerr << "Error: failed to end command buffer, code: " << res << std::endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   void CleanUp() {
