@@ -16,6 +16,9 @@ lmem: lmem.o
 deviceptr: deviceptr.o
 	$(CC) $< -o $@ $(LDFLAGS) -lgbm
 
+intel-gpu-blit: intel-gpu-blit.o
+	$(CC) $< -o $@ $(LDFLAGS) -lgbm -Wall
+
 modeset-lmem-deviceptr: modeset-lmem-deviceptr.o
 	$(CC) $< -o $@ $(LDFLAGS) -lgbm
 
