@@ -31,8 +31,8 @@ struct buffer {
 	uint32_t stride;
 };
 
-const int width = 3840;
-const int height = 2560;
+int width = 2560;
+int height = 1440;
 
 struct intel_info {
   int fd;
@@ -479,7 +479,7 @@ struct buffer *create_buffer(struct gbm_device *gbm_device) {
 	return buf;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	struct buffer *src, *dst;
 	int ret;
 	int fence_fd, prime_fd;
@@ -488,6 +488,11 @@ int main() {
 	struct pollfd pfd = { 0 };
 	struct timespec start, end;
 	double elapsed_time;
+
+	if (argc >= 3) {
+		width = atoi(argv[1]);
+		height = atoi(argv[2]);
+	}
 
 	// dGPU
 	int fd = open("/dev/dri/card1", O_RDWR | O_CLOEXEC);
@@ -517,8 +522,8 @@ int main() {
 
 		pfd.fd = fence_fd;
 		pfd.events = POLLIN;
-		printf("start polling\n");
-		ret = poll(&pfd, 1, 1000);
+		ret = poll(&pfd, 1, 1000000);
+		assert (ret != -1);
 	}
 	clock_gettime(CLOCK_MONOTONIC, &end);
 	elapsed_time = (end.tv_sec * 1000.f + end.tv_nsec / 1000000.f) - (start.tv_sec * 1000.f + end.tv_nsec / 1000000.f);
